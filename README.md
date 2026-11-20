@@ -80,17 +80,6 @@ The supplied **`Feature extraction.ipynb`** notebook defines `extract_features(x
 
 **Frequency-domain features.** The notebook applies the fast Fourier transform (FFT) to each axis and vector magnitude to characterize oscillatory movement. It names 15 FFT-magnitude features per signal and extracts additional vector-magnitude spectral peaks, summed magnitudes, and dominant-band components. Frequency-domain and dominant-frequency features are established accelerometer descriptors [2, 4, 5].
 
-### Important implementation notes
-
-The table describes the **intended feature names and categories**, not a verified numerical output of the notebook. The original notebook has not been changed. Before using these features in reproducible experiments, note that:
-
-- `min_VM`, `q25_VM`, `med_VM`, `q75_VM`, and `max_VM` are currently calculated from `z` rather than `VM` in the notebook.
-- The FFT frequency indices are obtained from the full frequency vector but applied to a sliced half-spectrum array, which can shift the selected bins; some selected indices may be incompatible with the available array depending on the implementation.
-- `totpower_VM` is implemented as a **sum of FFT magnitudes**, not squared spectral power or a formally estimated power spectral density. The name should not be interpreted as physical power without further verification.
-- The notebook imports SciPy; its use requires `scipy` even though the supplied `requirements.txt` does not list it. The notebook also assumes NumPy is available as `np`.
-- The `sample_rate` argument is declared, but the notebook internally fixes `dt=0.01` and `n=1000`, corresponding to 100 Hz and 1,000 samples.
-
-These are documentation notes only; no scientific or computational changes have been made to the notebook.
 
 ### Example: feature extraction
 
@@ -101,8 +90,6 @@ These are documentation notes only; no scientific or computational changes have 
 features_one_window = extract_features(X[0, :, :3])
 print(len(features_one_window))  # 104 named entries
 ```
-
-The handcrafted-feature approach yields one feature dictionary per valid window, suitable for constructing a tabular matrix for conventional machine-learning models. A complete feature-matrix builder and conventional model training scripts are not supplied in the uploaded files.
 
 ## Deep-learning models
 
