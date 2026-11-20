@@ -1,13 +1,14 @@
-# Deep-learning models for 24-hour movement-behaviour classification
+# Deep-learning models and handcrafted feature extraction for 24-hour movement-behaviour classification
 
-This repository contains the preprocessing and deep-learning model definitions used for wrist-worn accelerometer movement-behaviour classification in the Capture-24 study.
+This repository contains preprocessing utilities, handcrafted feature extraction, and deep-learning model definitions for classifying 24-hour movement behaviours from wrist-worn accelerometer data in the **CAPTURE-24** study. It documents two separate approaches: extracting established accelerometer features for conventional machine-learning methods and using windowed acceleration signals as inputs to deep-learning architectures.
 
-The repository intentionally focuses on the two methodological components needed to inspect the deep-learning pipeline:
+The provided files cover:
 
-1. preprocessing of raw accelerometer signals into model-ready 10-second windows; and
-2. the LSTM, BiLSTM, GRU, and 1D-CNN architectures.
+1. Preprocessing accelerometer recordings into non-overlapping 10-second windows.
+2. Extracting handcrafted time-domain, frequency-domain, spectral, and angular features from each window.
+3. Defining LSTM, bidirectional LSTM (BiLSTM), GRU, and 1D-CNN architectures.
 
-Evaluation and result-generation code are not included.
+**Scope:** The supplied repository files contain preprocessing, feature extraction, and model definitions; complete model training, evaluation, and result-generation scripts are not included.
 
 ## Repository structure
 
@@ -16,64 +17,131 @@ Evaluation and result-generation code are not included.
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── figures/
-│   └── deep_learning_architectures.png
-└── src/
-    ├── __init__.py
-    ├── preprocessing.py
-    └── models.py
+├── Feature extraction.ipynb
+├── Deep_ Learning_Structures.pdf
+├── __init__.py
+├── preprocessing.py
+└── models.py
 ```
+
+The tree represents the supplied source files (using their original logical filenames, without upload suffixes). The feature extractor is provided as a notebook, **not** as an independently supplied `feature_extraction.py` module. The architecture diagram is provided as a PDF.
+
+## Dataset: CAPTURE-24
+
+**CAPTURE-24** is a publicly available free-living human activity recognition dataset collected in Oxfordshire, United Kingdom. The publicly released dataset contains accelerometer signals and activity annotations, not the camera images [1].
+
+The original activity annotations can be mapped into broader movement-behaviour categories using the accompanying annotation dictionary. This repository uses the `label:Walmsley2020` mapping and the following four labels:
+
+| Encoded label | Movement behaviour |
+| ---: | --- |
+| 0 | Light physical activity (`light`) |
+| 1 | Moderate-to-vigorous physical activity (`moderate-vigorous`) |
+| 2 | Sedentary behaviour (`sedentary`) |
+| 3 | Sleep (`sleep`) |
+
+**Data access:** Obtain the dataset and its annotation-label dictionary from the official CAPTURE-24 release described in [1]. The raw data are not redistributed in this repository.
 
 ## Preprocessing
 
-Raw wrist accelerometer data are represented by the three acceleration axes (`x`, `y`, and `z`). Vector magnitude is calculated as:
+The raw accelerometer recordings contain three axes (`x`, `y`, `z`). The preprocessing code calculates vector magnitude (`VM`):
 
-`VM = sqrt(x^2 + y^2 + z^2)`
+```text
+VM = sqrt(x² + y² + z²)
+```
 
-The signals are divided into non-overlapping 10-second windows. At a sampling frequency of 100 Hz, a complete window contains 1,000 samples. Windows containing missing values or an incomplete number of samples are excluded. The movement-behaviour label for a valid window is obtained from the modal label within that window.
+The recordings are segmented into **non-overlapping 10-second windows**. At 100 Hz, each complete window contains **1,000 samples**. Windows containing missing values or an incomplete number of samples are excluded. Each valid window receives the most frequent movement-behaviour label within that window; windows without a unique modal label are skipped.
 
-The resulting input shape for the deep-learning models is:
+The raw-signal deep-learning input has shape:
 
 ```text
 (number of windows, 1000 samples, 4 channels)
 ```
 
-where the four channels are `x`, `y`, `z`, and `VM`.
+The four channels are `x`, `y`, `z`, and `VM`. The supplied `preprocessing.py` provides `load_annotation_dictionary`, `load_participant`, `extract_windows`, and `encode_labels`.
 
-The class order used in the code is:
+## Handcrafted feature extraction
 
-```text
-0  light
-1  moderate-vigorous
-2  sedentary
-3  sleep
+The supplied **`Feature extraction.ipynb`** notebook defines `extract_features(xyz, sample_rate=100)` for one triaxial acceleration window. It constructs a dictionary of **104 named features** derived from the `x`, `y`, `z`, and calculated `VM` signals. These feature families are established in accelerometer-based human activity recognition research, including time-domain statistics, axis correlations, FFT-derived measures, dominant spectral components, and orientation-related angles [2–5]. The **specific 104-feature combination is the implementation in this notebook**, not a feature set attributed in its entirety to any one publication.
+
+| Feature group | Implemented features | Count | Relevant literature |
+| --- | --- | ---: | --- |
+| Mean and standard deviation | Mean and standard deviation for `x`, `y`, `z`, `VM` | 8 | [2–4] |
+| Distribution statistics | Minimum, 25th percentile, median, 75th percentile, maximum for each signal | 20 | [2–4] |
+| Inter-axis correlation | Pearson correlations `xy`, `yz`, `zx` | 3 | [2–4] |
+| FFT magnitudes | 15 named FFT magnitudes (`fft1`–`fft15`) for each of `x`, `y`, `z`, `VM` | 60 | [2–5] |
+| Spectral peaks | First and second peak magnitudes and corresponding frequencies for `VM` | 4 | [2, 4, 5] |
+| Summed spectral magnitude | `totpower_VM`, nominally for the 0.3–15 Hz band | 1 | [2, 4] |
+| Dominant frequency band | Dominant frequency and magnitude within the nominal 0.6–2.5 Hz band for `VM` | 2 | [2, 4] |
+| Angular features | Mean and standard deviation of roll, pitch, yaw, calculated from acceleration axes | 6 | [2, 3] |
+| **Total** | | **104** | |
+
+### Feature definitions
+
+**Time-domain features.** Mean and standard deviation summarize acceleration level and variability. Quantiles describe the distribution within a window, and inter-axis correlations describe linear relationships between acceleration axes. These are commonly used features in activity-recognition research [2–4].
+
+**Frequency-domain features.** The notebook applies the fast Fourier transform (FFT) to each axis and vector magnitude to characterize oscillatory movement. It names 15 FFT-magnitude features per signal and extracts additional vector-magnitude spectral peaks, summed magnitudes, and dominant-band components. Frequency-domain and dominant-frequency features are established accelerometer descriptors [2, 4, 5].
+
+**Angular features.** Roll, pitch, and yaw are calculated using `arctan2` combinations of the acceleration axes, and their means and standard deviations are extracted. These are acceleration-derived angular descriptors; they should not be interpreted as independently measured device orientation or gyroscope-derived yaw.
+
+### Important implementation notes
+
+The table describes the **intended feature names and categories**, not a verified numerical output of the notebook. The original notebook has not been changed. Before using these features in reproducible experiments, note that:
+
+- `min_VM`, `q25_VM`, `med_VM`, `q75_VM`, and `max_VM` are currently calculated from `z` rather than `VM` in the notebook.
+- The FFT frequency indices are obtained from the full frequency vector but applied to a sliced half-spectrum array, which can shift the selected bins; some selected indices may be incompatible with the available array depending on the implementation.
+- `totpower_VM` is implemented as a **sum of FFT magnitudes**, not squared spectral power or a formally estimated power spectral density. The name should not be interpreted as physical power without further verification.
+- The notebook imports SciPy; its use requires `scipy` even though the supplied `requirements.txt` does not list it. The notebook also assumes NumPy is available as `np`.
+- The `sample_rate` argument is declared, but the notebook internally fixes `dt=0.01` and `n=1000`, corresponding to 100 Hz and 1,000 samples.
+
+These are documentation notes only; no scientific or computational changes have been made to the notebook.
+
+### Example: feature extraction
+
+```python
+# Run the feature-extraction notebook to define extract_features first.
+# X is a set of complete windows with x, y, z channels.
+
+features_one_window = extract_features(X[0, :, :3])
+print(len(features_one_window))  # 104 named entries
 ```
 
-## Models
+The handcrafted-feature approach yields one feature dictionary per valid window, suitable for constructing a tabular matrix for conventional machine-learning models. A complete feature-matrix builder and conventional model training scripts are not supplied in the uploaded files.
 
-Four deep-learning architectures are provided in `src/models.py`:
+## Deep-learning models
 
-- LSTM
-- Bidirectional LSTM (BiLSTM)
-- GRU
-- 1D-CNN
+Four architectures are implemented in `models.py`:
 
-The implementations retain the layer sizes and dropout setting used in the study. The functions return uncompiled Keras models so that training configuration is kept separate from the architecture definitions.
+| Model | Main layers | Output |
+| --- | --- | --- |
+| LSTM | Four LSTM layers (256, 128, 64, 32 units) | Four-class softmax |
+| BiLSTM | Four bidirectional LSTM layers (256, 128, 64, 32 units per direction) | Four-class softmax |
+| GRU | Four GRU layers (256, 128, 64, 32 units) | Four-class softmax |
+| 1D-CNN | Four Conv1D layers (256, 128, 64, 32 filters), each followed by max pooling | Four-class softmax |
 
-![Deep-learning architectures](figures/deep_learning_architectures.png)
+The architectures use dropout (`0.2` by default) and batch normalization after their principal layers, followed by a 16-unit dense layer and softmax classification. Their default input shape is `(1000, 4)`. The functions return **uncompiled Keras models**; compilation, training, and evaluation are not included.
+
+The supplied `Deep_ Learning_Structures.pdf` illustrates the four model structures.
+
+**Separate modelling pathways:** The 104 handcrafted features are **not** passed into these LSTM, BiLSTM, GRU, or 1D-CNN definitions. These models receive the four-channel acceleration windows directly.
 
 ## Installation
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\\Scripts\\activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+To run the feature-extraction notebook, install its additional imported dependency if needed:
+
+```bash
+pip install scipy notebook
 ```
 
 ## Example: preprocessing one participant
 
 ```python
-from src.preprocessing import (
+from preprocessing import (
     extract_windows,
     load_annotation_dictionary,
     load_participant,
@@ -96,22 +164,32 @@ print(y.shape)
 ## Example: build a model
 
 ```python
-from src.models import build_lstm
+from models import build_lstm
 
 model = build_lstm(input_shape=(1000, 4), num_classes=4)
 model.summary()
 ```
 
-The other architectures can be created with `build_bilstm`, `build_gru`, and `build_cnn`.
+Other architectures are available as `build_bilstm`, `build_gru`, and `build_cnn`.
 
 ## Data
 
-The Capture-24 dataset is not redistributed in this repository. Users should obtain the data from its official source and provide local paths to the participant files and annotation dictionary.
+CAPTURE-24 data are not distributed with this repository. The source dataset, annotation dictionary, and data documentation should be obtained from the original dataset release [1]. The study's participant-level split or any subsequent experimental splits are **not implemented in the supplied repository files**; avoid interpreting the examples as a complete evaluation protocol.
+
+## References
+
+1. Chan, S., Hang, Y., Tong, C., et al. (2024). *CAPTURE-24: A large dataset of wrist-worn activity tracker data collected in the wild for human activity recognition.* Scientific Data, 11, 1135. DOI: `10.1038/s41597-024-03960-3`. [Google Scholar search](https://www.google.com/search?q=Chan+Hang+Tong+2024+CAPTURE-24+Scientific+Data).
+2. *The Key Factors in Physical Activity Type Detection Using Real-Life Data: A Systematic Review.* (2019). Frontiers in Physiology. DOI: `10.3389/fphys.2019.00075`. [Google Scholar search](https://www.google.com/search?q=The+Key+Factors+in+Physical+Activity+Type+Detection+Using+Real-Life+Data+systematic+review).
+3. *A systematic review of smartphone-based human activity recognition methods for health research.* (2021). npj Digital Medicine. DOI: `10.1038/s41746-021-00514-4`. [Google Scholar search](https://www.google.com/search?q=systematic+review+smartphone+based+human+activity+recognition+methods+health+research+2021).
+4. *Human Activity Recognition using Inertial, Physiological and Environmental Sensors: A Comprehensive Survey.* (2020). [Google Scholar search](https://www.google.com/search?q=Human+Activity+Recognition+using+Inertial+Physiological+and+Environmental+Sensors+A+Comprehensive+Survey).
+5. *Energy-Efficient Real-Time Human Activity Recognition on Smart Mobile Devices.* (2016). [Google Scholar search](https://www.google.com/search?q=Energy-Efficient+Real-Time+Human+Activity+Recognition+on+Smart+Mobile+Devices+2016).
+
+These references establish the dataset and the published precedent for the **types** of handcrafted features; they do not establish that the notebook reproduces any individual paper's exact feature-extraction implementation.
 
 ## Citation
 
-If you use this code, please cite the associated paper:
+If you use this research code, please cite the associated manuscript (bibliographic details to be updated when available):
 
 > Sameh, A., Rostami, M., Oussalah, M., & Farrahi, V. *Classification of 24-hour movement behaviors from wrist-worn accelerometer data: From handcrafted features to deep learning techniques.*
 
-
+Please also cite the CAPTURE-24 dataset paper [1] when using the dataset.
