@@ -5,10 +5,10 @@ This repository contains preprocessing utilities, handcrafted feature extraction
 The provided files cover:
 
 1. Preprocessing accelerometer recordings into non-overlapping 10-second windows.
-2. Extracting handcrafted time-domain, frequency-domain, spectral, and angular features from each window.
+2. Extracting handcrafted time-domain, frequency-domain features from each window.
 3. Defining LSTM, bidirectional LSTM (BiLSTM), GRU, and 1D-CNN architectures.
 
-**Scope:** The supplied repository files contain preprocessing, feature extraction, and model definitions; complete model training, evaluation, and result-generation scripts are not included.
+**Scope:** The supplied repository files contain preprocessing, feature extraction, and model definitions.
 
 ## Repository structure
 
@@ -24,7 +24,6 @@ The provided files cover:
 └── models.py
 ```
 
-The tree represents the supplied source files (using their original logical filenames, without upload suffixes). The feature extractor is provided as a notebook, **not** as an independently supplied `feature_extraction.py` module. The architecture diagram is provided as a PDF.
 
 ## Dataset: CAPTURE-24
 
@@ -81,8 +80,6 @@ The supplied **`Feature extraction.ipynb`** notebook defines `extract_features(x
 
 **Frequency-domain features.** The notebook applies the fast Fourier transform (FFT) to each axis and vector magnitude to characterize oscillatory movement. It names 15 FFT-magnitude features per signal and extracts additional vector-magnitude spectral peaks, summed magnitudes, and dominant-band components. Frequency-domain and dominant-frequency features are established accelerometer descriptors [2, 4, 5].
 
-**Angular features.** Roll, pitch, and yaw are calculated using `arctan2` combinations of the acceleration axes, and their means and standard deviations are extracted. These are acceleration-derived angular descriptors; they should not be interpreted as independently measured device orientation or gyroscope-derived yaw.
-
 ### Important implementation notes
 
 The table describes the **intended feature names and categories**, not a verified numerical output of the notebook. The original notebook has not been changed. Before using these features in reproducible experiments, note that:
@@ -122,7 +119,6 @@ The architectures use dropout (`0.2` by default) and batch normalization after t
 
 The supplied `Deep_ Learning_Structures.pdf` illustrates the four model structures.
 
-**Separate modelling pathways:** The 104 handcrafted features are **not** passed into these LSTM, BiLSTM, GRU, or 1D-CNN definitions. These models receive the four-channel acceleration windows directly.
 
 ## Installation
 
