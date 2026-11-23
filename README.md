@@ -1,6 +1,6 @@
 # Deep-learning models and handcrafted feature extraction for 24-hour movement-behaviour classification
 
-This repository contains preprocessing utilities, handcrafted feature extraction, and deep-learning model definitions for classifying 24-hour movement behaviours from wrist-worn accelerometer data in the **CAPTURE-24** study. It documents two separate approaches: extracting established accelerometer features for conventional machine-learning methods and using windowed acceleration signals as inputs to deep-learning architectures.
+This repository contains preprocessing, handcrafted feature extraction, and deep-learning model definitions for classifying 24-hour movement behaviours from wrist-worn accelerometer data in the **CAPTURE-24** study. It documents two separate approaches: extracting established accelerometer features for conventional machine-learning methods and using windowed acceleration signals as inputs to deep-learning architectures.
 
 The provided files cover:
 
@@ -17,7 +17,7 @@ The provided files cover:
 ├── README.md
 ├── requirements.txt
 ├── .gitignore
-├── Feature extraction.ipynb
+├── Feature extraction.py
 ├── Deep_ Learning_Structures.pdf
 ├── __init__.py
 ├── preprocessing.py
@@ -76,10 +76,7 @@ The supplied **`Feature extraction.ipynb`** notebook defines `extract_features(x
 
 ### Feature definitions
 
-**Time-domain features.** Mean and standard deviation summarize acceleration level and variability. Quantiles describe the distribution within a window, and inter-axis correlations describe linear relationships between acceleration axes. These are commonly used features in activity-recognition research [2–4].
-
-**Frequency-domain features.** The notebook applies the fast Fourier transform (FFT) to each axis and vector magnitude to characterize oscillatory movement. It names 15 FFT-magnitude features per signal and extracts additional vector-magnitude spectral peaks, summed magnitudes, and dominant-band components. Frequency-domain and dominant-frequency features are established accelerometer descriptors [2, 4, 5].
-
+Descriptions of all features are provided in the paper.
 
 ### Example: feature extraction
 
@@ -157,8 +154,7 @@ Other architectures are available as `build_bilstm`, `build_gru`, and `build_cnn
 
 ## Data
 
-CAPTURE-24 data are not distributed with this repository. The source dataset, annotation dictionary, and data documentation should be obtained from the original dataset release [1]. The study's participant-level split or any subsequent experimental splits are **not implemented in the supplied repository files**; avoid interpreting the examples as a complete evaluation protocol.
-
+CAPTURE-24 data are not distributed with this repository. The source dataset, annotation dictionary, and data documentation should be obtained from the original dataset release [1]. 
 ## References
 
 1. Chan, S., Hang, Y., Tong, C., et al. (2024). *CAPTURE-24: A large dataset of wrist-worn activity tracker data collected in the wild for human activity recognition.* Scientific Data, 11, 1135. DOI: `10.1038/s41597-024-03960-3`. [Google Scholar search](https://www.google.com/search?q=Chan+Hang+Tong+2024+CAPTURE-24+Scientific+Data).
@@ -173,6 +169,6 @@ These references establish the dataset and the published precedent for the **typ
 
 If you use this research code, please cite the associated manuscript (bibliographic details to be updated when available):
 
-> Sameh, A., Rostami, M., Oussalah, M., & Farrahi, V. *Classification of 24-hour movement behaviors from wrist-worn accelerometer data: From handcrafted features to deep learning techniques.*
+> Sameh, A., Rostami, M., Oussalah, M., & Farrahi, V. (2025). Classification of 24-hour movement behaviors from wrist-worn accelerometer data: From handcrafted features to deep learning techniques [Preprint]. arXiv. https://doi.org/10.48550/arXiv.2509.08606
 
 Please also cite the CAPTURE-24 dataset paper [1] when using the dataset.
